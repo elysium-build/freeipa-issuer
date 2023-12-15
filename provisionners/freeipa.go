@@ -5,13 +5,14 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 
 	api "github.com/guilhem/freeipa-issuer/api/v1beta1"
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/jetstack/cert-manager/pkg/util/pki"
-	"github.com/tehwalris/go-freeipa/freeipa"
+	"github.com/xu001186/go-freeipa/freeipa"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -80,7 +81,18 @@ func (s *FreeIPAPKI) Sign(ctx context.Context, cr *certmanager.CertificateReques
 	}
 
 	if csr.Subject.CommonName == "" {
-		return nil, nil, fmt.Errorf("Request has no common name")
+		return nil, nil, fmt.Errorf("request has no common name")
+	}
+
+	dnsNames := csr.DNSNames
+	commonServiceName := fmt.Sprintf("%s/%s", s.spec.ServiceName, csr.Subject.CommonName)
+	servicenames := []string{}
+	servicenames = append(servicenames, commonServiceName)
+	for _, dnsname := range dnsNames {
+		san := fmt.Sprintf("%s/%s@%s", s.spec.ServiceName, dnsname, "ELYSIUM.EPICON.COM")
+		if !slices.Contains(servicenames, san) {
+			servicenames = append(servicenames, san)
+		}
 	}
 
 	// Adding Host
@@ -100,12 +112,10 @@ func (s *FreeIPAPKI) Sign(ctx context.Context, cr *certmanager.CertificateReques
 		}
 	}
 
-	name := fmt.Sprintf("%s/%s", s.spec.ServiceName, csr.Subject.CommonName)
-
 	// Adding service
 	if s.spec.AddService {
 		svcList, err := s.client.ServiceFind(
-			name,
+			commonServiceName,
 			&freeipa.ServiceFindArgs{},
 			&freeipa.ServiceFindOptionalArgs{
 				PkeyOnly:  freeipa.Bool(true),
@@ -117,49 +127,82 @@ func (s *FreeIPAPKI) Sign(ctx context.Context, cr *certmanager.CertificateReques
 				return nil, nil, fmt.Errorf("fail listing services: %v", err)
 			}
 		} else if svcList.Count == 0 {
-			if _, err := s.client.ServiceAdd(&freeipa.ServiceAddArgs{Krbcanonicalname: name}, &freeipa.ServiceAddOptionalArgs{Force: freeipa.Bool(true)}); err != nil && !s.spec.IgnoreError {
+			if _, err := s.client.ServiceAdd(&freeipa.ServiceAddArgs{Krbcanonicalname: commonServiceName}, &freeipa.ServiceAddOptionalArgs{
+				Force: freeipa.Bool(true),
+			}); err != nil && !s.spec.IgnoreError {
 				return nil, nil, fmt.Errorf("fail adding service: %v", err)
 			}
 		}
 	}
+	for _, servicename := range servicenames {
+		_, err := s.client.ServiceAddPrincipal(&freeipa.ServiceAddPrincipalArgs{
+			Krbcanonicalname: commonServiceName,
+			Krbprincipalname: []string{servicename},
+		}, &freeipa.ServiceAddPrincipalOptionalArgs{})
+		if err != nil {
+			if freeipaErr, ok := err.(*freeipa.Error); ok {
+				if freeipaErr.Name == "AlreadyContainsValueError" {
+					continue
+				}
 
-	result, err := s.client.CertRequest(&freeipa.CertRequestArgs{
+			}
+			return nil, nil, fmt.Errorf("fail to add service principle %s to service %s : %v", commonServiceName, servicename, err)
+		}
+	}
+
+	certRequestResult, err := s.client.CertRequest(&freeipa.CertRequestArgs{
 		Csr:       string(cr.Spec.Request),
-		Principal: name,
+		Principal: commonServiceName,
 	}, &freeipa.CertRequestOptionalArgs{
 		Cacn: &s.spec.Ca,
 		Add:  &s.spec.AddPrincipal,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("Fail to request certificate: %v", err)
+		return nil, nil, fmt.Errorf("fail to request certificate: %v", err)
 	}
 
 	reqCertShow := &freeipa.CertShowArgs{
-		SerialNumber: int(result.Result.(map[string]interface{})["serial_number"].(float64)),
+		SerialNumber: (certRequestResult.Result.(map[string]interface{})["serial_number"].(string)),
 	}
 
 	var certPem string
 	var caPem string
 
 	cert, err := s.client.CertShow(reqCertShow, &freeipa.CertShowOptionalArgs{Chain: freeipa.Bool(true)})
-	if err != nil || len(*cert.Result.CertificateChain) == 0 {
-		log.Error(err, "fail to get certificate FALLBACK", "requestResult", result)
 
-		c, ok := result.Result.(map[string]interface{})[certKey].(string)
+	if err != nil {
+		log.Error(err, "fail to get certificate FALLBACK", "requestResult", certRequestResult)
+
+		c, ok := certRequestResult.Result.(map[string]interface{})[certKey].(string)
 		if !ok || c == "" {
-			return nil, nil, fmt.Errorf("can't find certificate for: %s", result.String())
+			return nil, nil, fmt.Errorf("can't find certificate for: %s", certRequestResult.String())
+		}
+		certPem = formatCertificate(c)
+	}
+
+	if cert.Result.CertificateChain != nil {
+		certificateChains, _ := (*(cert.Result.CertificateChain)).([]interface{})
+		if len(certificateChains) > 0 {
+			for i, raw_chain := range certificateChains {
+				chain, _ := raw_chain.(map[string]interface{})
+				cert, _ := chain["__base64__"].(string)
+
+				c := formatCertificate(cert)
+				if i == 0 {
+					certPem = c
+				} else {
+					caPem = strings.Join([]string{caPem, c}, "\n\n")
+				}
+			}
+		} else {
+			log.Info("can't find the certificate chain for certificate %s", reqCertShow.SerialNumber)
+			c, ok := certRequestResult.Result.(map[string]interface{})[certKey].(string)
+			if !ok || c == "" {
+				return nil, nil, fmt.Errorf("can't find certificate for: %s", certRequestResult.String())
+			}
+			certPem = formatCertificate(c)
 		}
 
-		certPem = formatCertificate(c)
-	} else {
-		for i, c := range *cert.Result.CertificateChain {
-			c = formatCertificate(c)
-			if i == 0 {
-				certPem = c
-			} else {
-				caPem = strings.Join([]string{caPem, c}, "\n\n")
-			}
-		}
 	}
 
 	return []byte(strings.TrimSpace(certPem)), []byte(strings.TrimSpace(caPem)), nil
