@@ -1,20 +1,12 @@
 apiVersion: certmanager.freeipa.org/v1beta1
 kind: Issuer
 metadata:
+  labels:
+    app.kubernetes.io/name: issuer
+    app.kubernetes.io/instance: issuer-sample
+    app.kubernetes.io/part-of: freeipa-issuer
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: freeipa-issuer
   name: issuer-sample
 spec:
-  host: freeipa.example.test
-  user:
-    name: freeipa-auth
-    key: user
-  password:
-    name: freeipa-auth
-    key: password
-
-  # Optionals
-  serviceName: HTTP
-  addHost: true
-  addService: true
-  addPrincipal: true
-  ca: ipa
-  insecure: false
+  # TODO(user): Add fields here

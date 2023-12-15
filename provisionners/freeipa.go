@@ -89,7 +89,7 @@ func (s *FreeIPAPKI) Sign(ctx context.Context, cr *certmanager.CertificateReques
 	servicenames := []string{}
 	servicenames = append(servicenames, commonServiceName)
 	for _, dnsname := range dnsNames {
-		san := fmt.Sprintf("%s/%s@%s", s.spec.ServiceName, dnsname, "ELYSIUM.EPICON.COM")
+		san := fmt.Sprintf("%s/%s@%s", s.spec.ServiceName, dnsname, s.spec.RealmDomain)
 		if !slices.Contains(servicenames, san) {
 			servicenames = append(servicenames, san)
 		}

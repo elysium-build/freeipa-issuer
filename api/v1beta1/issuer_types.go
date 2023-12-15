@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Guilhem Lettron.
+Copyright 2023.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,6 +37,9 @@ type IssuerSpec struct {
 
 	// +kubebuilder:default=HTTP
 	ServiceName string `json:"serviceName"`
+
+	// +kubebuilder:default=elysium.epicon.com
+	RealmDomain string `json:"realmDomain"`
 
 	// +kubebuilder:default=true
 	AddHost bool `json:"addHost"`

@@ -1,11 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: clusterissuers.certmanager.freeipa.org
 spec:
   group: certmanager.freeipa.org
@@ -52,6 +50,9 @@ spec:
                 description: Host remote FreeIPA server
                 minLength: 1
                 type: string
+              ignoreError:
+                default: false
+                type: boolean
               insecure:
                 default: false
                 type: boolean
@@ -63,16 +64,20 @@ spec:
                       valid secret key.
                     type: string
                   name:
-                    description: Name is unique within a namespace to reference a
+                    description: name is unique within a namespace to reference a
                       secret resource.
                     type: string
                   namespace:
-                    description: Namespace defines the space within which the secret
+                    description: namespace defines the space within which the secret
                       name must be unique.
                     type: string
                 required:
                 - key
                 type: object
+                x-kubernetes-map-type: atomic
+              realmDomain:
+                default: elysium.epicon.com
+                type: string
               serviceName:
                 default: HTTP
                 type: string
@@ -84,24 +89,27 @@ spec:
                       valid secret key.
                     type: string
                   name:
-                    description: Name is unique within a namespace to reference a
+                    description: name is unique within a namespace to reference a
                       secret resource.
                     type: string
                   namespace:
-                    description: Namespace defines the space within which the secret
+                    description: namespace defines the space within which the secret
                       name must be unique.
                     type: string
                 required:
                 - key
                 type: object
+                x-kubernetes-map-type: atomic
             required:
             - addHost
             - addPrincipal
             - addService
             - ca
             - host
+            - ignoreError
             - insecure
             - password
+            - realmDomain
             - serviceName
             - user
             type: object
@@ -155,9 +163,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

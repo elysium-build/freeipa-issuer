@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Guilhem Lettron.
+Copyright 2023.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
+// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+// ClusterIssuerSpec defines the desired state of ClusterIssuer
+
+type ClusterIssuerSpec struct {
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
+	// Foo is an example field of ClusterIssuer. Edit clusterissuer_types.go to remove/update
+	Foo string `json:"foo,omitempty"`
+}
+
+// ClusterIssuerStatus defines the observed state of ClusterIssuer
+type ClusterIssuerStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
 
 // ClusterIssuer is the Schema for the clusterissuers API
