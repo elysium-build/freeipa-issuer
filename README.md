@@ -27,7 +27,7 @@ commonLabels:
   app: freeipa-issuer
 
 resources:
-  - https://github.com/guilhem/freeipa-issuer/config/default
+  - https://github.com/elysium-build/freeipa-issuer/config/default
 ```
 
 ## Configuration

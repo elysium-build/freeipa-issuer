@@ -70,7 +70,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: controller:latest
+        image: xu1186/freeipa-issuer-controller:v1.0.0
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

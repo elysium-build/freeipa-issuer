@@ -1,6 +1,6 @@
 module github.com/guilhem/freeipa-issuer
 
-go 1.20
+go 1.21
 
 require (
 	github.com/jetstack/cert-manager v1.7.2
