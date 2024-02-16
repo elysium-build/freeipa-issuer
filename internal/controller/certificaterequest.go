@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	api "github.com/guilhem/freeipa-issuer/api/v1beta1"
 	provisioners "github.com/guilhem/freeipa-issuer/provisionners"
@@ -133,6 +134,8 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req reconc
 			log.Error(err, "failed to retrieve Issuer resource", "namespace", issNamespaceName.Namespace, "name", issNamespaceName.Name)
 			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, certmanager.CertificateRequestReasonPending, fmt.Sprintf("Failed to retrieve Issuer resource %s: %v", issNamespaceName, err))
 
+			// sleep 1 second if it fails
+			time.Sleep(1 * time.Second)
 			return reconcile.Result{}, err
 		}
 
@@ -154,10 +157,15 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req reconc
 
 	// Load the provisioner that will sign the CertificateRequest
 	p, ok := provisioners.Load(issNamespaceName)
+
 	if !ok {
 		err := fmt.Errorf("provisioner %s not found", issNamespaceName)
 		log.Error(err, "failed to provisioner for Issuer resource")
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, certmanager.CertificateRequestReasonPending, fmt.Sprintf("Failed to load provisioner for Issuer resource %s", issNamespaceName))
+
+		// sleep 1 second if it fails
+		time.Sleep(1 * time.Second)
+
 		return reconcile.Result{}, err
 	}
 
