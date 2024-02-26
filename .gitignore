@@ -13,7 +13,8 @@ bin
 *.out
 
 # Kubernetes Generated files - skip generated files, except for vendored files
-
+vendor/**
+test/**
 !vendor/**/zz_generated.*
 
 # editor and IDE paraphernalia
@@ -23,3 +24,6 @@ bin
 *~
 
 /freeipa-issuer
+.DS_Store
+vendor/github.com/cespare/xxhash/v2/xxhash_other.go
+cmd/__debug_bin3620910393

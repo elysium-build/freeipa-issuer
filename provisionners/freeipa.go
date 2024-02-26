@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	api "github.com/guilhem/freeipa-issuer/api/v1beta1"
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -30,13 +31,14 @@ type FreeIPAPKI struct {
 // New returns a new provisioner, configured with the information in the
 // given issuer.
 func New(namespacedName types.NamespacedName, spec *api.IssuerSpec, user, password string, insecure bool) (*FreeIPAPKI, error) {
+
 	tspt := http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: insecure,
 		},
 	}
 
-	client, err := freeipa.Connect(spec.Host, &tspt, user, password)
+	client, err := freeipa.Connect(time.Second*30, spec.Host, &tspt, user, password)
 	if err != nil {
 		return nil, err
 	}
