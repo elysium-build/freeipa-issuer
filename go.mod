@@ -6,7 +6,7 @@ require (
 	github.com/jetstack/cert-manager v1.7.2
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.10
-	github.com/xu001186/go-freeipa v1.0.2
+	github.com/xu001186/go-freeipa v1.0.3
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3
 	k8s.io/client-go v0.28.3
