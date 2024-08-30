@@ -148,6 +148,9 @@ func (s *FreeIPAPKI) Sign(ctx context.Context, cr *certmanager.CertificateReques
 				}
 
 			}
+			if strings.Contains(err.Error(), "entry already exists") {
+				continue
+			}
 			return nil, nil, fmt.Errorf("fail to add service principle %s to service %s : %v", commonServiceName, servicename, err)
 		}
 	}
