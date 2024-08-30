@@ -67,7 +67,7 @@ func (r *ClusterIssuerReconciler) Reconcile(ctx context.Context, req reconcile.R
 	p, err := provisioners.New(req.NamespacedName, &iss.Spec, string(user), string(password), iss.Spec.Insecure)
 	if err != nil {
 		log.Error(err, "failed to create provisioner")
-		_ = r.setStatus(ctx, iss, api.ConditionFalse, "Error", "Failed initialize provisioner")
+		_ = r.setStatus(ctx, iss, api.ConditionFalse, "Error", fmt.Sprintf("Failed initialize provisioner,detail is %v", err))
 		return reconcile.Result{}, err
 	}
 
